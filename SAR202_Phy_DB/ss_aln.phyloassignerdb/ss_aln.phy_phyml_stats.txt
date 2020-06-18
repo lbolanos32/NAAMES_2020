@@ -1,0 +1,71 @@
+
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+                                    ---  PhyML v3.0  ---                                             
+                            http://www.atgc-montpellier.fr/phyml                                          
+                         Copyright CNRS - Universite Montpellier II                                 
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
+
+. Sequence filename: 			ss_aln.phy
+
+. Data set: 				#1
+
+. Tree topology: 			fixed
+
+. Initial tree: 			user tree (ss_aln.phyloassignerdb/ss_aln_phy.tre)
+
+. Model of nucleotides substitution: 	GTR
+
+. Number of taxa: 			149
+
+. Log-likelihood: 			-52239.10448
+
+. Unconstrained likelihood: 		-10968.62185
+
+. Parsimony: 				11629
+
+. Tree size: 				14.14644
+
+. Discrete gamma model: 		Yes
+  - Number of categories: 		4
+  - Gamma shape parameter: 		0.490
+
+. Nucleotides frequencies:
+
+  - f(A)= 0.23448
+  - f(C)= 0.24898
+  - f(G)= 0.33487
+  - f(T)= 0.18167
+
+. GTR relative rate parameters : 
+
+  A <-> C    0.80149
+  A <-> G    1.98178
+  A <-> T    1.16224
+  C <-> G    0.87091
+  C <-> T    4.15938
+  G <-> T    1.00000
+
+
+. Instantaneous rate matrix : 
+
+  [A---------C---------G---------T------]
+  -0.93666   0.17398   0.57860   0.18409  
+   0.16385  -1.07692   0.25427   0.65880  
+   0.40513   0.18905  -0.75257   0.15839  
+   0.23759   0.90287   0.29196  -1.43242     
+
+
+
+. Time used 0h2m30s
+
+
+. 150 seconds
+
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+ Suggested citation:
+ S. Guindon & O. Gascuel
+ "A simple, fast, and accurate algorithm to estimate large phylogenies by maximum likelihood"
+ Systematic Biology. 2003. 52(5):696-704.
+ oooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooooo
+
