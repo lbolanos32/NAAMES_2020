@@ -1,0 +1,379 @@
+\documentclass{article}
+\usepackage{blindtext}
+\usepackage{titlesec}
+\titleformat{\subsection}{\normalfont\large\bfseries}{Task \thesubsection}{1em}{}
+\usepackage{xcolor}
+\usepackage{listings}
+\usepackage{multicol}
+\lstset{basicstyle=\ttfamily,
+  showstringspaces=false,
+  commentstyle=\color{red},
+  keywordstyle=\color{blue},
+  columns=fullflexible,
+  breaklines=true,
+}
+
+\begin{document}\sloppy
+
+\title{The North Atlantic Aerosols and Marine Ecosystems Study (NAAMES) microbial genetic profiling using 16S rRNA amplicon high-trhoughput sequencing}
+\author{Luis M. Bola\~nos}
+\date{June 2020}
+\maketitle
+
+\tableofcontents
+
+\section{Introduction}
+
+This document was created to provide a methodological framework of the analysis of four 16S rRNA amplicon data sets generated as part of the The North Atlantic Aerosols and Marine Ecosystems Study (NAAMES). Each of the four data sets represent the collection of genetic profiles targeting specific seasonal events in the annual plankton cycle (https://doi.org/10.3389/fmars.2019.00122 for more information). These data sets will be referred as: 
+\begin{description}\sloppy
+\item[$-$]\textbf{NAAMES1}: Campaign 1 Winter Transition (November 2015). 56 microbial biomass samples were collected from 7 stations at 8 different depths (5m, 25m, 50m, 75m, 100, 150, 200, 250m and 300m).
+\item[$-$]\textbf{NAAMES2}: Campaign 2 Climax Transition (May 2016). 64 microbial biomass samples were collected from 5 stations at 8 different depths (5m, 25m, 50m, 75m, 100, 150, 200, 250m and 300m). Station 4 was sampled daily during a four-day occupation (4 depth profiles).
+\item[$-$]\textbf{NAAMES3}: Campaign 3 Declining Phase (September 2017). 112 microbial biomass samples were collected from 11 stations at 8 different depths (5m, 25m, 50m, 75m, 100, 150, 200, 250m and 300m). Station 6 was sampled daily during a four-day occupation (4 depth profiles).
+\item[$-$]\textbf{NAAMES4}: Campaign 4 Accumulation Phase (March-April 2018). 40 microbial biomass samples were collected from 5 stations at 8 different depths (5m, 25m, 50m, 75m, 100, 150, 200, 250m and 300m).
+
+\end{description}
+\section{Samples, data generation and raw data availability}\sloppy
+
+16S rRNA amplicon sequencing was performed on libraries made of amplicons using 27F (5'-AGAGTTTGATCNTGGCTCAG-3) and 338 RPL (5'- GCWGCCWCCCGTAGGWGT-3') primer set. For more information: https://doi.org/10.1038/s41396-020-0636-0 and https://github.com/lbolanos32/Phyto\_NAAMES\_2019. Raw 16S rRNA datasets are publicly available at:
+
+\begin{description}\sloppy
+
+\item[$-$] \textbf{NCBI SRA.} BioProject: PRJNA627189 (SRA accession numbers SRR11596858 to SRR11597110)
+
+\item[$-$] \textbf {NASA SeaWiFS Bio-optical Archive and Storage System (SeaBASS).} 
+Amplicon Sequences download Instructions
+
+1) Go to https://seabass.gsfc.nasa.gov/investigator/Giovannoni,\%20Stephen
+
+2) Click the blue [search] button
+
+3) Check the "Include all associated files" box.
+
+4) Click download all
+
+\end{description}
+
+\textbf{Questions? please contact}
+\begin{description}\sloppy
+\item[$\bullet$] Stephen Giovannoni (Steve.giovannoni@oregonstate.edu) or
+\item[$\bullet$] Luis M Bolanos (bolanosl@oregonstate.edu, lbolanos@lcg.unam.mx) 
+\end{description}
+
+\textbf {Citation:}
+\begin{description}\sloppy
+\item[$\bullet$]If curated phytoplankton fraction from "https://github.com/lbolanos32/Phyto\_NAAMES\_2019" is used, plase cite: “Small Phytoplankton Dominate Western North Atlantic Biomass” (https://doi.org/10.1038/s41396-020-0636-0).
+\item[$\bullet$]If data sets are used in any other way, you followed this pipeline or used the attached scripts, please cite: "Seasonality of the microbial community composition in the western North Atlantic".
+\end{description}
+
+\section{Pipeline: From Raw Data to ASV tables}
+The following scripts were used sequentially to achieve four ASVs tables, one for each sequencing run. Samples from each campaign were sequenced in one Illumina lane.  Processed tables, product of this pipeline, can be found along this document.
+
+\subsection{Pre-processing sequence files: CUTADAPT}
+Cutadapt is used to chop the primers from the raw sequences. In this SOP, we are using a fixed number of bp to trim each paired-end. The fixed number match the primer length: 27F (20bp) and 338RPL (18bp) (\textbf{trimf.sh} and \textbf{trimrev.sh}) to chop the fixed number of bp from the raw sequences
+
+\subsection{Run DADA2 version 1.2}
+We used the script \textbf{DadaR.R} to generate an ASV table coupled with taxonomic assignation using SILVA database train version 123 (silva\_nr\_v123\_train\_set.fa) and the R version used was R-3.4.1 DadaR.R This script generates an ASV (seqtab-nochimtaxa.txt)table from the trimmed reads.
+
+
+\begin{subsection}{Parsing Dada output}
+“seqtab-nochimtaxa.txt" files use unique sequence as row name (identifier) and the assigned taxa is shown in the last columns (SILVA hierarchical format). We parsed the names with  \textbf{parseNames.pl} which outputs the file seqtab-par.txt.tmp. Then we added sequential field-specific identifiers using \textbf{addcolnm.pl} which outputs seqtab-par.txt.tmp.co
+
+\end{subsection}
+
+*This can be automatized and run it for the four data sets. 
+
+\section{Pipeline: From ASV tables to the merged dataset (used in 'Seasonality of the microbial community composition in the western North Atlantic')}
+We created a single ASV table merging the N1N2, N3 and N4 tables by the ASV sequence. ASV tables for each campaign were generated using dada2 script (DadaR.R, above). It is done individually due to the error frequency estimation, which underlying assumption is that each sequencing run have different errors. 
+\begin{lstlisting}[language=bash,caption={parsing the files for merging}]
+Create files without taxa and merge them using the sequence (first row)
+cut -f 1-112 N1N2/seqtab-par.txt.tmp > seqtab-parN1N2.txt.tmp #NAAMES 1 and NAAMES 2 were analyzed together in the previous paper and we are keeping it consistent. 
+cut -f 1-150 N3/seqtab-par.txt.tmp  > seqtab-parN3.txt.tmp
+cut -f 1-154 N4/seqtab-par.txt.tmp > seqtab-parN4.txt.tmp
+\end{lstlisting}
+
+\begin{lstlisting}[language=R,caption={R processing}]
+count_tab1 <- read.table("Path where the file is located/seqtab-parN1N2.txt.tmp", header=T, row.names=1, check.names=F)
+count_tab2 <- read.table("Path where the file is located/seqtab-parN3.txt.tmp", header=T, row.names=1, check.names=F)
+count_tab3 <- read.table("Path where the file is located/seqtab-parN4.txt.tmp", header=T, row.names=1, check.names=F)
+
+count_tab_phy1 <- otu_table(count_tab1, taxa_are_rows=T)
+count_tab_phy2 <- otu_table(count_tab2, taxa_are_rows=T)
+count_tab_phy3 <- otu_table(count_tab3, taxa_are_rows=T)
+
+OTU_physeqN1N2 <- phyloseq(count_tab_phy1)
+OTU_physeqN3 <- phyloseq(count_tab_phy2)
+OTU_physeqN4 <- phyloseq(count_tab_phy3)
+
+NAAMESphyseq<-merge_phyloseq(OTU_physeqN1N2,OTU_physeqN3,OTU_physeqN4)
+write.table(otu_table(NAAMESphyseq),file= "/Users/luisbolanos/Documents/OSU_postdoc/NAAMES/MergeAll/seqtab-parNAAMES.txt.tmp", quote=FALSE, sep = "\t")
+
+seqtab-parNAAMES.txt #is a merged ASV table 
+seqtab-parNAAMES.txt = total with repeats 412 samples #Repeats are N3 samples re-sequenced in the NAAMES 4 line. So we removed the low quality repeats below and some N2 which we already knew were low quality from the previous paper (Bolanos et al., 2020).
+\end{lstlisting}
+List of removed samples from seqtab-parNAAMES.txt (NEW FILE seqtab-parNAAMES.tab should have 375)
+
+\begin{multicols}{3}
+    \begin{itemize}
+\item N3S1-5\_S132
+\item N3S1-150\_S133
+\item N3S1Ml1\_S134
+\item N31a-150\_S135
+\item N3S2Ml1\_S137
+\item N3S3-75\_S140
+\item N3S3-150\_S142
+\item N3S3d1-8\_S144
+\item N3S4Ml1\_S147	
+\item N3S4-5-200\_S148
+\item N3S4-5Ml1\_S149
+\item N3S5-150\_S150	
+\item Undetermined\_S0
+\item NAAMES2-20\_S45
+\item NAAMES2-23\_S47
+\item NAAMES2-32\_S53
+\item NAAMES2-62\_S58
+\item N3S1-5\_S1
+\item N3S1-150\_S6
+\item N3S1-Ml1\_S9
+\item N3S1a-150\_S16
+\item N3S1-5-Ml1\_S27
+\item N3S2-Ml1\_S36
+\item N3S3-5\_S38
+\item N3S3-25\_S39
+\item N3S3-75\_S41
+\item N3S3-100\_S42
+\item N3S3-150\_S43
+\item N3S3-Ml1\_S46
+\item N3S3d1-8\_S50
+\item N3S3d2-3\_S52
+\item N3S3-5-100\_S60
+\item N3S4-Ml1\_S73
+\item N3S4-5-200\_S81
+\item N3S4-5-Ml1\_S83
+\item N3S5-150\_S89
+\item N3S5-200\_S90
+\item N3S6C4-25\_S103
+\end{itemize}
+    \end{multicols}
+\subsection{Parsing and formatting to obtain the final taxonomy}
+\begin{itemize}
+\item Add sequential IDs using the \textbf{addcolnm.pl} script to seqtab-parNAAMES.tab and generate seqtab-parNAAMES.txt.tmp.co
+
+\item{add taxonomy from the dada2 output to create seqtab-par.NAAMES.tax.tab.txt}
+
+\item{removing non 16S (SILVA assign these as "Eukaryota")}
+\begin{lstlisting}[language=bash]
+grep -vw "Eukaryota" seqtab-par.NAAMES.tax.tab.txt > seqtab-par.NAAMESclean.tax.tab.txt
+cut -f 1,2 seqtab-par_on16.txt | sed "s/^N/>N/" | sed "s/\t/\n/" > seqtab-par.NAAMESclean.tax.tab.fa
+\end{lstlisting}
+
+\item{Splitting photosynthetic from heterotrophic}\\
+\\
+\centerline{\bfseries Phytoplankton fraction}
+Taxonomic assignment was done as in Bolanos et al., 2020. Photosynthetic fractions for each campaign were annotated and collapsed using custom databases. Final files are provided along this document.
+
+After aligning the phytoplankton ASVs, we manually removed sequences which were not correctly aligned (potential misamplifications). 
+
+\begin{multicols}{4}
+    \begin{itemize}
+\item N36924
+\item N13977
+\item N35961
+\item N20866
+\item N12585
+\item N11320
+\item N30700
+\item N34104
+\item N29233
+\item N13881
+\item N34339
+\item N36715
+\item N33444
+\item N35157
+\item N34541
+\item N36383
+\item N35218
+\item N21599
+\item N22708
+\item N35953
+\item N36824
+\item N35909
+\item N30104
+\item N32625
+\item N35101
+\item N30022
+\item N33118
+\item N35337
+\end{itemize}
+    \end{multicols}
+\begin{lstlisting}[language=bash]
+grep -wf Photlink_final_collapsed.lst seqtab-parNAAMESclean.tax.tab.txt > Photlink_final_collapsedVR2.otu #This VR2 is the file without the above sequences
+\end{lstlisting}
+
+\centerline{\bfseries Heterotrophic fraction}
+\begin{lstlisting}[language=bash]
+grep -vwf Photlink_final_collapsed.lst seqtab-parNAAMESclean.tax.tab.txt > Hetlink_final_collapsedV.otu
+
+cut -f 1,3-377 Hetlink_final_collapsedV.otu > Hetlink_final_collapsedV2.otu #Get the Heterotrophic ASV Table
+
+cut -f 1,2 Hetlink_final_collapsedV.otu | sed "s/^N/>N/" | sed "s/\t/\n/g" > Hetlink_seq.fasta
+tail -n +3 Hetlink_seq.fasta > tmp1_rm
+mv tmp1_rm Hetlink_seq.fasta
+
+cut -f 1,378-383 Hetlink_final_collapsedV.otu > Hetlink_temptax.txt #Get the Heterotrophic Taxonomic Table to add highly defined SAR11 and SAR202
+
+\end{lstlisting}
+\item{Adding SAR11 and SAR202 highly defined taxonomy}
+\begin{lstlisting}[language=bash]
+
+grep  "SAR11_clade" seqtab-par.NAAMESclean.tax.tab.txt | tail -n +1 | cut -f 1,2 | sed "s/^N/>N/" | sed "s/\t/\n/" > SAR11_merge.fasta
+
+#SAR202
+grep  "SAR202" seqtab-par.NAAMESclean.tax.tab.txt | tail -n +1 | cut -f 1,2 | sed "s/^N/>N/" | sed "s/\t/\n/" > SAR202_merge.fasta
+
+#Run Phyloassigner with a custom SAR11 DB 
+perl phyloassigner.pl --hmmerdir --pplacerdir -o SAR11_allN /datasets/SAR11_full/Sar11CoreV3_aln_inpclean1_10.phyloassignerdb/ SAR11_merge.fasta
+
+#NOTE: Sar11CoreV3_aln_inpclean1_10.phyloassignerdb/ and how was it created is provided in this repository. Check folder SAR11DB
+
+#Run Phyloassigner  with a custom SAR202 DB
+perl phyloassigner.pl --hmmerdir --pplacerdir -o SAR202_allN /datasets/SAR202/ss_aln.phyloassignerdb/ SAR202_merge.fasta
+
+cut -f 1,3 SAR202_allN/SAR202_merge.fasta.aln.jplace.tab | tail -n +2 > sar202_Nall.twocols
+
+cut -f 1,3 SAR11_allN/SAR11_merge.fasta.aln.jplace.tab | tail -n +2 > sar11_Nall.twocols
+
+#Use the perl script substPAon16.pl to update the taxonomy table
+perl substPAon16.pl Hetlink_temptax.txt sar202_Nall.twocols > HetlinkTax_202.txt
+perl substPAon16.pl HetlinkTax_202.txt sar11_Nall.twocols > HetlinkTax_202_11.txt
+\end{lstlisting}
+
+\end{itemize}
+
+\section{Pipeline: R analysis of the merged dataset}
+
+Final datasets are:
+\begin{itemize}
+\item {\bfseries Photlink\_final\_collapsedVR2.otu} (Photosynthetic ASV table)
+\item {\bfseries Photlink\_final\_collapsedVR.tax} (Photosynthetic Taxa table)
+\item {\bfseries Hetlink\_final\_collapsedV2.otu} (Heterotrophic ASV table) 
+\item {\bfseries HetlinkTax\_202\_11.txt} (Heterotrophic Taxa table)
+\item {\bfseries Allcat.otu.txt}(Concatenated Phot+Het ASV table)
+\item {\bfseries Allcat.tax} (Concatenated Phot+Het Taxa table)
+\item {\bfseries Merge\_envFileDNA.txt} (Environmental data)
+\item {\bfseries CoordsStV2.txt} (formatted station coordinates)
+\end{itemize}
+
+\subsection{FIGURE 1: MAPS}
+\begin{lstlisting}[language=R]
+library(ggplot2)
+library(ggmap)
+library(maps)
+library(mapdata)
+
+samps <- read.table("/Users/luisbolanos/Documents/MisDrafts/InProgress/NAAMES_annual/CoordsStV2.txt", header=T,sep="\t")
+
+#Get the row number
+N1<-which(samps$cruise=="NAAMES1")
+N2<-which(samps$cruise=="NAAMES2")
+N3<-which(samps$cruise=="NAAMES3")
+N4<-which(samps$cruise=="NAAMES4")
+
+#NAAMES1
+svg("N1map.svg")
+image(x=-75:-20, y = 30:60, z = outer(0, 0), xlab = "lon", ylab = "lat")
+map("world", add = TRUE, fill=TRUE,bg='light blue')
+points(samps[N1,3], samps[N1,2], pch=19, col="blue4", cex=1.5, type="p")
+dev.off()
+
+#NAAMES2
+svg("N2map.svg")
+image(x=-75:-20, y = 30:60, z = outer(0, 0), xlab = "lon", ylab = "lat")
+map("world", add = TRUE, fill=TRUE,bg='light blue')
+points(samps[N2,3], samps[N2,2], pch=19, col="darkgreen", cex=1.5, type="p")
+dev.off()
+
+#NAAMES3
+svg("N3map.svg")
+image(x=-75:-20, y = 30:60, z = outer(0, 0), xlab = "lon", ylab = "lat")
+map("world", add = TRUE, fill=TRUE,bg='light blue')
+points(samps[N3,3], samps[N3,2], pch=19, col="firebrick", cex=1.3, type="p")
+dev.off()
+
+#NAAMES4
+svg("N4map.svg")
+image(x=-75:-20, y = 30:60, z = outer(0, 0), xlab = "lon", ylab = "lat")
+map("world", add = TRUE, fill=TRUE,bg='light blue')
+points(samps[N4,3], samps[N4,2], pch=19, col="black", cex=1.5, type="p")
+dev.off()
+\end{lstlisting}
+
+\subsection{FIGURE 2: Ordination}
+R script (OrdinationNAAMES.R) provided 
+\subsection{FIGURE 3: Phytoplankton Community Composition}
+R script (PhytoCCNAAMES.R) provided 
+\subsection{FIGURE 4: Heterotrophic Bacteria Community Composition}
+R script (HetCCNAAMES.R) provided 
+\subsection{FIGURE 5: SAR 11 Community Composition}
+R script (SAR11NAAMES.R) provided 
+\subsection{FIGURE 6: ASVs modularity and relative contributions}
+Network and modularity analysis is provided as an R script (this includes Fig S3)
+\subsection{FIGURE S1: Cladogram of SAR11 phylogenetic tree used as database for taxonomic placement}
+
+A SAR11 phylogenetic tree was built based on full-length 16S rRNA retrieved from SILVA DB. (find more in lbolanos32/NAAMES\_2020/SAR11\_Phy\_DB/) \\
+
+A) Data Retrieval \\
+\\
+SAR11\_1167seqs\_SILVA138.fasta is the original file with the sequences downloaded from SILVA with the following parameters:
+\begin{itemize}
+\item length \textgreater 1400 (only full length, in that way we know we are covering the V1 and V2)
+\item Qseq \textgreater 90
+\item Qaln \textgreater 90
+\item Qpintail \textgreater 90
+\end{itemize}
+
+B) Cleaning, aligning, cropping and QC
+\begin{itemize}
+\item B.1) Sequences were aligned usign Clustalw and misaligned sequences were manually removed. 
+\item B.2) DNA dist was estimated for the cropped sequences, pairs  \textgreater 99.5 identical were de-multiplexed and only one representative was used
+\item B.3) Final alignment \textbf{Sar11CoreV3\_aln\_inpclean1\_10.phy} is provided in the SAR11DB directory
+\end {itemize}
+
+C) Phylogenetic reconstruction using raxmlHPC \\
+raxmlHPC -f a -#100 -m GTRGAMMA  -x 345 -p 678 -s Sar11CoreV3\_aln\_inpclean1\_10.phy  -n ar11CoreV3\_aln\_inpclean1\_10.tree -o Gmet\_R0046 \\
+
+D) setting the phyloassigner DB \\
+perl phyloassigner-6.166/setupdb.pl Sar11CoreV3\_aln\_inpclean1\_10.nwk    Sar11CoreV3\_aln\_inpclean1\_10.phy  'Gmet\_R0046' --nopack --pplacerdir /raid1/home/micro/bolanosl/local/source/phyloassigner-6.166/binaries/
+
+\subsection{FIGURE S2: Dendogram and Heatmap of phytoplankton communities}
+R script (Dendro\_Phyto.R) provided
+\subsection{FIGURE S3: Network analysis}
+
+\section{List of Tables provided}
+\begin{itemize}
+\item N1N2\_seqtab-par.txt.tmp (original output for N1 and N2 DADA2 run)
+\item N3\_seqtab-par.txt.tmp (original output for N3 DADA2 run)
+\item N4\_seqtab-par.txt.tmp (original output for N4 DADA2 run)
+\item seqtab-parNAAMES.txt (ASV table merged by sequence from N1N2, N3 and N4,, provided upon request as it is too large for github)
+\item seqtab-par.NAAMESclean.tax.tab.fa (working sequences)
+\item seqtab-par.NAAMESclean.tax.tab.txt (working ASV table with New IDs and taxa assignment, provided upon request as it is too large for github)
+\item Photlink\_final\_collapsed.lst (list of phytoplankton ASVs)
+\item Photlink\_final\_collapsedVR.tax (phytoplankton taxonomic assignment)
+\item Photlink\_final\_collapsedVR2.otu (phytoplankton ASV table)
+\item Merge\_envFileDNA.txt (working environmental file)
+\item Allcat.env (concatenated het+phot environmental file)
+\item Allcat.tax (concatenated het+phot tax table)
+\item Allcat.otu (concatenated het+phot ASV table)
+\item Hetlink\_final\_collapsedV2.otu (Het Bacteria ASV table)
+\item HetlinkTax\_202\_11.txt (Het Bacteria tax table)
+\item Taxa\_custom.tax (Phytoplankton custom taxonomic names)
+\item barplots\_addposition\_min1600.txt (table required for fig 3)
+\item SAR11V2 taxa, custom file to create FIG 5
+\end{itemize}
+
+\section{Other objects provided}
+\begin{itemize}
+\item EXTRA: netNAAMESall.rds This file contains the co variance associations computed for the network analysis. This file is required to fully reproduce the NAAMESNTWK.R and the manuscript figures. Or it can be computed from scratch running the commented section in R file. 
+\end{itemize}
+
+\end{document}
+\maketitle
